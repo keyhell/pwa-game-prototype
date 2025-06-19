@@ -56,6 +56,8 @@ let targetIndex = null;
 
 const currentEl = document.getElementById('current-card');
 const nextEl = document.getElementById('next-card');
+const currentText = currentEl.querySelector('.card-text');
+const nextText = nextEl.querySelector('.card-text');
 
 function shuffle(array) {
   return array
@@ -65,7 +67,7 @@ function shuffle(array) {
 }
 
 function showIntro() {
-  currentEl.textContent = introCard;
+  currentText.textContent = introCard;
   nextEl.classList.add('hidden');
 }
 
@@ -73,13 +75,13 @@ function startGame(asTzar) {
   deck = shuffle(asTzar ? tzarCards : citizenCards);
   index = 0;
   state = 'game';
-  currentEl.textContent = deck[index];
+  currentText.textContent = deck[index];
   prepareNext();
 }
 
 function prepareNext() {
   if (index + 1 < deck.length) {
-    nextEl.textContent = deck[index + 1];
+    nextText.textContent = deck[index + 1];
     nextEl.className = 'card enter-from-bottom';
   } else {
     nextEl.className = 'card hidden';
@@ -93,11 +95,11 @@ function handleAnswer(ans) {
     answers.push({ q: deck[index], a: ans });
     index++;
     if (index >= deck.length) {
-      currentEl.textContent = 'The End';
+      currentText.textContent = 'The End';
       nextEl.className = 'card hidden';
       return;
     }
-    currentEl.textContent = deck[index];
+    currentText.textContent = deck[index];
     prepareNext();
   }
 }
@@ -106,12 +108,14 @@ function onTransitionEnd() {
   if (!animating) return;
   animating = false;
   currentEl.className = 'card';
+  currentEl.style.transition = '';
+  currentEl.style.transform = 'translate(-50%, -50%)';
   nextEl.classList.remove('center');
   if (currentSwipeDir === 'right' || currentSwipeDir === 'left') {
     handleAnswer(currentSwipeDir === 'right' ? 'yes' : 'no');
   } else if (currentSwipeDir === 'up' || currentSwipeDir === 'down') {
     index = targetIndex;
-    currentEl.textContent = deck[index];
+    currentText.textContent = deck[index];
     prepareNext();
   }
 }
@@ -120,7 +124,8 @@ function swipe(dir) {
   if (animating) return;
   currentSwipeDir = dir;
   animating = true;
-  currentEl.classList.add(dir === 'right' ? 'move-right' : 'move-left');
+  currentEl.style.transition = 'transform 0.25s ease-out';
+  currentEl.style.transform = dir === 'right' ? 'translate(160%, -50%) rotate(25deg)' : 'translate(-160%, -50%) rotate(-25deg)';
   nextEl.classList.remove('enter-from-bottom');
   nextEl.classList.add('center');
 }
@@ -132,31 +137,54 @@ function swipeVertical(dir) {
   currentSwipeDir = dir;
   animating = true;
   targetIndex = index + (dir === 'up' ? 1 : -1);
-  nextEl.textContent = deck[targetIndex];
+  nextText.textContent = deck[targetIndex];
   nextEl.className = 'card ' + (dir === 'up' ? 'enter-from-bottom' : 'enter-from-top');
   // force reflow to apply starting position
   void nextEl.offsetWidth;
-  currentEl.classList.add(dir === 'up' ? 'move-up' : 'move-down');
+  currentEl.style.transition = 'transform 0.25s ease-out';
+  currentEl.style.transform = dir === 'up' ? 'translate(-50%, -150%)' : 'translate(-50%, 150%)';
   nextEl.classList.remove(dir === 'up' ? 'enter-from-bottom' : 'enter-from-top');
   nextEl.classList.add('center');
 }
 
 let startX = 0;
 let startY = 0;
+let isDragging = false;
 const threshold = 30;
+let currentDX = 0;
+let currentDY = 0;
 
 currentEl.addEventListener('pointerdown', e => {
   startX = e.clientX;
   startY = e.clientY;
+  isDragging = true;
+  currentDX = 0;
+  currentDY = 0;
+  currentEl.style.transition = 'none';
+  currentEl.setPointerCapture(e.pointerId);
+});
+
+currentEl.addEventListener('pointermove', e => {
+  if (!isDragging) return;
+  currentDX = e.clientX - startX;
+  currentDY = e.clientY - startY;
+  const rot = currentDX / 10;
+  currentEl.style.transform = `translate(calc(-50% + ${currentDX}px), calc(-50% + ${currentDY}px)) rotate(${rot}deg)`;
 });
 
 currentEl.addEventListener('pointerup', e => {
+  if (!isDragging) return;
+  isDragging = false;
+  currentEl.releasePointerCapture(e.pointerId);
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
   if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
     swipe(dx > 0 ? 'right' : 'left');
   } else if (Math.abs(dy) > threshold) {
     swipeVertical(dy < 0 ? 'up' : 'down');
+  } else {
+    currentEl.style.transition = 'transform 0.25s ease-out';
+    currentEl.style.transform = 'translate(-50%, -50%)';
   }
 });
 

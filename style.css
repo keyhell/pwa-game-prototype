@@ -31,12 +31,13 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  padding-bottom: 60px;
   box-sizing: border-box;
   text-align: center;
   font-size: 1.3em;
   user-select: none;
   touch-action: none; /* to get pointer events */
-  transition: transform 0.3s ease-out;
+  transition: transform 0.25s ease-out;
 }
 
 .hidden {
@@ -44,11 +45,11 @@ html, body {
 }
 
 .move-left {
-  transform: translate(-150%, -50%) rotate(-15deg);
+  transform: translate(-160%, -50%) rotate(-25deg);
 }
 
 .move-right {
-  transform: translate(150%, -50%) rotate(15deg);
+  transform: translate(160%, -50%) rotate(25deg);
 }
 
 .move-up {
@@ -69,5 +70,24 @@ html, body {
 
 .center {
   transform: translate(-50%, -50%);
+}
+
+.card-text {
+  pointer-events: none;
+}
+
+.labels {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  color: #555;
+  pointer-events: none;
+  opacity: 0.8;
 }
 
