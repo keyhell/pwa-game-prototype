@@ -1,0 +1,8 @@
+{
+  "name": "Swipe Card Game",
+  "short_name": "SwipeGame",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+}
