@@ -51,6 +51,18 @@ html, body {
   transform: translate(150%, -50%) rotate(15deg);
 }
 
+.move-up {
+  transform: translate(-50%, -150%);
+}
+
+.move-down {
+  transform: translate(-50%, 150%);
+}
+
+.enter-from-top {
+  transform: translate(-50%, -150%);
+}
+
 .enter-from-bottom {
   transform: translate(-50%, 150%);
 }
