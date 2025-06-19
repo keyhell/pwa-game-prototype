@@ -52,6 +52,7 @@ let index = 0;
 let state = 'intro';
 let animating = false;
 let currentSwipeDir = null;
+let targetIndex = null;
 
 const currentEl = document.getElementById('current-card');
 const nextEl = document.getElementById('next-card');
@@ -106,7 +107,13 @@ function onTransitionEnd() {
   animating = false;
   currentEl.className = 'card';
   nextEl.classList.remove('center');
-  handleAnswer(currentSwipeDir === 'right' ? 'yes' : 'no');
+  if (currentSwipeDir === 'right' || currentSwipeDir === 'left') {
+    handleAnswer(currentSwipeDir === 'right' ? 'yes' : 'no');
+  } else if (currentSwipeDir === 'up' || currentSwipeDir === 'down') {
+    index = targetIndex;
+    currentEl.textContent = deck[index];
+    prepareNext();
+  }
 }
 
 function swipe(dir) {
@@ -115,6 +122,22 @@ function swipe(dir) {
   animating = true;
   currentEl.classList.add(dir === 'right' ? 'move-right' : 'move-left');
   nextEl.classList.remove('enter-from-bottom');
+  nextEl.classList.add('center');
+}
+
+function swipeVertical(dir) {
+  if (animating || state !== 'game') return;
+  if (dir === 'up' && index >= deck.length - 1) return;
+  if (dir === 'down' && index <= 0) return;
+  currentSwipeDir = dir;
+  animating = true;
+  targetIndex = index + (dir === 'up' ? 1 : -1);
+  nextEl.textContent = deck[targetIndex];
+  nextEl.className = 'card ' + (dir === 'up' ? 'enter-from-bottom' : 'enter-from-top');
+  // force reflow to apply starting position
+  void nextEl.offsetWidth;
+  currentEl.classList.add(dir === 'up' ? 'move-up' : 'move-down');
+  nextEl.classList.remove(dir === 'up' ? 'enter-from-bottom' : 'enter-from-top');
   nextEl.classList.add('center');
 }
 
@@ -132,6 +155,8 @@ currentEl.addEventListener('pointerup', e => {
   const dy = e.clientY - startY;
   if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
     swipe(dx > 0 ? 'right' : 'left');
+  } else if (Math.abs(dy) > threshold) {
+    swipeVertical(dy < 0 ? 'up' : 'down');
   }
 });
 
