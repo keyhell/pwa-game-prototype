@@ -20,7 +20,7 @@ const tzarCards = [
   "Will you host grand tournaments?",
   "Do you plan to outlaw corruption?",
   "Will you expand trade with the west?",
-  "Do you vow to crush all rebellions?"
+  "Do you vow to crush all rebellions?",
 ];
 
 const citizenCards = [
@@ -43,7 +43,7 @@ const citizenCards = [
   "Do you stand for peaceful protests?",
   "Will you educate your children?",
   "Do you uphold the market rules?",
-  "Will you pray for the realm's prosperity?"
+  "Will you pray for the realm's prosperity?",
 ];
 
 let deck = [];
@@ -51,13 +51,14 @@ let answers = [];
 let index = 0;
 let state = 'intro';
 let animating = false;
+let animationPhase = null;
 let currentSwipeDir = null;
-let targetIndex = null;
 
-const currentEl = document.getElementById('current-card');
-const nextEl = document.getElementById('next-card');
-const currentText = currentEl.querySelector('.card-text');
-const nextText = nextEl.querySelector('.card-text');
+const cardEl = document.getElementById('card');
+const cardText = cardEl.querySelector('.card-text');
+const yesBtn = document.getElementById('yes-button');
+const noBtn = document.getElementById('no-button');
+const shuffleBtn = document.getElementById('shuffle-button');
 
 function shuffle(array) {
   return array
@@ -67,25 +68,14 @@ function shuffle(array) {
 }
 
 function showIntro() {
-  currentText.textContent = introCard;
-  nextEl.classList.add('hidden');
+  cardText.textContent = introCard;
 }
 
 function startGame(asTzar) {
   deck = shuffle(asTzar ? tzarCards : citizenCards);
   index = 0;
   state = 'game';
-  currentText.textContent = deck[index];
-  prepareNext();
-}
-
-function prepareNext() {
-  if (index + 1 < deck.length) {
-    nextText.textContent = deck[index + 1];
-    nextEl.className = 'card enter-from-bottom';
-  } else {
-    nextEl.className = 'card hidden';
-  }
+  cardText.textContent = deck[index];
 }
 
 function handleAnswer(ans) {
@@ -95,100 +85,89 @@ function handleAnswer(ans) {
     answers.push({ q: deck[index], a: ans });
     index++;
     if (index >= deck.length) {
-      currentText.textContent = 'The End';
-      nextEl.className = 'card hidden';
+      cardText.textContent = 'The End';
       return;
     }
-    currentText.textContent = deck[index];
-    prepareNext();
+    cardText.textContent = deck[index];
   }
 }
 
-function onTransitionEnd() {
-  if (!animating) return;
-  animating = false;
-  currentEl.className = 'card';
-  currentEl.style.transition = '';
-  currentEl.style.transform = 'translate(-50%, -50%)';
-  nextEl.classList.remove('center');
-  if (currentSwipeDir === 'right' || currentSwipeDir === 'left') {
-    handleAnswer(currentSwipeDir === 'right' ? 'yes' : 'no');
-  } else if (currentSwipeDir === 'up' || currentSwipeDir === 'down') {
-    index = targetIndex;
-    currentText.textContent = deck[index];
-    prepareNext();
-  }
+function shuffleDeck() {
+  if (state !== 'game') return;
+  deck = shuffle(deck);
+  index = 0;
+  cardText.textContent = deck[index];
 }
 
-function swipe(dir) {
+function fadeTo(callback) {
+  animating = true;
+  animationPhase = 'out';
+  cardEl.style.transition = 'opacity 0.25s ease-out';
+  cardEl.style.opacity = '0';
+  const handler = () => {
+    cardEl.removeEventListener('transitionend', handler);
+    callback();
+    animationPhase = 'in';
+    cardEl.style.transition = 'opacity 0.25s ease-in';
+    cardEl.style.opacity = '1';
+    cardEl.addEventListener('transitionend', () => {
+      animating = false;
+    }, { once: true });
+  };
+  cardEl.addEventListener('transitionend', handler);
+}
+
+function answer(ans) {
   if (animating) return;
-  currentSwipeDir = dir;
-  animating = true;
-  currentEl.style.transition = 'transform 0.25s ease-out';
-  currentEl.style.transform = dir === 'right' ? 'translate(160%, -50%) rotate(25deg)' : 'translate(-160%, -50%) rotate(-25deg)';
-  nextEl.classList.remove('enter-from-bottom');
-  nextEl.classList.add('center');
+  fadeTo(() => handleAnswer(ans));
 }
 
-function swipeVertical(dir) {
-  if (animating || state !== 'game') return;
-  if (dir === 'up' && index >= deck.length - 1) return;
-  if (dir === 'down' && index <= 0) return;
-  currentSwipeDir = dir;
-  animating = true;
-  targetIndex = index + (dir === 'up' ? 1 : -1);
-  nextText.textContent = deck[targetIndex];
-  nextEl.className = 'card ' + (dir === 'up' ? 'enter-from-bottom' : 'enter-from-top');
-  // force reflow to apply starting position
-  void nextEl.offsetWidth;
-  currentEl.style.transition = 'transform 0.25s ease-out';
-  currentEl.style.transform = dir === 'up' ? 'translate(-50%, -150%)' : 'translate(-50%, 150%)';
-  nextEl.classList.remove(dir === 'up' ? 'enter-from-bottom' : 'enter-from-top');
-  nextEl.classList.add('center');
+function processShuffle() {
+  if (animating) return;
+  fadeTo(() => shuffleDeck());
 }
 
+// Swipe logic
 let startX = 0;
 let startY = 0;
 let isDragging = false;
 const threshold = 30;
 let currentDX = 0;
-let currentDY = 0;
 
-currentEl.addEventListener('pointerdown', e => {
+cardEl.addEventListener('pointerdown', e => {
   startX = e.clientX;
   startY = e.clientY;
   isDragging = true;
   currentDX = 0;
-  currentDY = 0;
-  currentEl.style.transition = 'none';
-  currentEl.setPointerCapture(e.pointerId);
+  cardEl.style.transition = 'none';
+  cardEl.setPointerCapture(e.pointerId);
 });
 
-currentEl.addEventListener('pointermove', e => {
+cardEl.addEventListener('pointermove', e => {
   if (!isDragging) return;
   currentDX = e.clientX - startX;
-  currentDY = e.clientY - startY;
+  const dy = e.clientY - startY;
   const rot = currentDX / 10;
-  currentEl.style.transform = `translate(calc(-50% + ${currentDX}px), calc(-50% + ${currentDY}px)) rotate(${rot}deg)`;
+  cardEl.style.transform = `translate(calc(-50% + ${currentDX}px), calc(-50% + ${dy}px)) rotate(${rot}deg)`;
 });
 
-currentEl.addEventListener('pointerup', e => {
+cardEl.addEventListener('pointerup', e => {
   if (!isDragging) return;
   isDragging = false;
-  currentEl.releasePointerCapture(e.pointerId);
+  cardEl.releasePointerCapture(e.pointerId);
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
   if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
-    swipe(dx > 0 ? 'right' : 'left');
-  } else if (Math.abs(dy) > threshold) {
-    swipeVertical(dy < 0 ? 'up' : 'down');
+    answer(dx > 0 ? 'yes' : 'no');
   } else {
-    currentEl.style.transition = 'transform 0.25s ease-out';
-    currentEl.style.transform = 'translate(-50%, -50%)';
+    cardEl.style.transition = 'transform 0.25s ease-out';
+    cardEl.style.transform = 'translate(-50%, -50%)';
   }
 });
 
-currentEl.addEventListener('transitionend', onTransitionEnd);
+yesBtn.addEventListener('click', () => answer('yes'));
+noBtn.addEventListener('click', () => answer('no'));
+shuffleBtn.addEventListener('click', processShuffle);
 
 showIntro();
 
